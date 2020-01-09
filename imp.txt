@@ -1,0 +1,33 @@
+https://us-central1-quizmaster-xbxftj.cloudfunctions.net/fulfillment
+
+to invoke:
+
+Talk to Letz Quiz
+
+Firebase
+
+<!-- The core Firebase JS SDK is always required and must be listed first -->
+<script src="https://www.gstatic.com/firebasejs/7.6.1/firebase-app.js"></script>
+
+<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+
+<script>
+  // Your web app's Firebase configuration
+  var firebaseConfig = {
+    apiKey: "AIzaSyCGQqSmCxbYwm-u_rgYKS1HIMKtQKn5KnI",
+    authDomain: "quizmaster-xbxftj.firebaseapp.com",
+    databaseURL: "https://quizmaster-xbxftj.firebaseio.com",
+    projectId: "quizmaster-xbxftj",
+    storageBucket: "quizmaster-xbxftj.appspot.com",
+    messagingSenderId: "695291363421",
+    appId: "1:695291363421:web:68c6d3a016a0a7fc9acdb4"
+  };
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+</script>
+
+cd functions
+npm run-script lint
+npm run-script build
+firebase serve --only functions
