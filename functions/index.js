@@ -39,7 +39,7 @@ let userId = "";
 
 let userRank = {
     userId: "",
-    Score: ""
+    score: ""
 };
 
 let rank = [];
@@ -157,23 +157,20 @@ app.intent('Question-Answer', (conv, { answer }) => {
 app.intent('Score', (conv, { param }) => {
     conv.ask(`Your Score is ${data.score}`);
     let setDoc = userRef.doc(conv.data.name).set(data);
-    let setRank = rankRef.doc(conv.data.name).set({ score: data.score });
+    let setRank = rankRef.doc(data.nickname).set({ score: data.score });
+    getRank();
 });
 
 
 //rank leader board
 app.intent('Hour-Rank', (conv) => {
-    console.log("hour rank intent");
-    getRank();
-    console.log("rank");
-    rank.sort(function(a, b) {
-        return a.score - b.score
-    });
-    console.log("sorting problem");
-    ranklist = "";
-    for (let i = 0; i < rank.length(); i++) {
+    console.log("userId" + userId);
+    console.log(rank);
+    let ranklist = "Rank List \n\n";
+    for (let i = 0; i < rank.length; i++) {
         if (i < 10) {
-            ranklist += `${ i + 1 }. ${rank[i].userId} ${rank[i].score}`;
+            ranklist += `${ i + 1 }. ${rank[i].userId} ${rank[i].score} \n`;
+            console.log(ranklist);
         }
         if (rank[i].userId == userId) {
             conv.ask(`your rank is ${ i + 1 }`);
@@ -230,7 +227,7 @@ function getQuestion(grade) {
 
 function getRank() {
     console.log("rank function");
-    return rankRef.get()
+    return rankRef.orderBy("score", 'desc').get()
         .then(snapshot => {
             if (snapshot.empty) {
                 console.log('No matching documents.');
@@ -238,9 +235,7 @@ function getRank() {
             }
 
             snapshot.forEach(doc => {
-                userRank.userId = doc.id;
-                userRank.rank = doc.data().score;
-                rank.push(userRank);
+                rank.push({ userId: doc.id, score: doc.data().score });
                 console.log(doc.id, '=>', doc.data());
             });
         })
