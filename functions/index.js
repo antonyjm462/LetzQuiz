@@ -35,6 +35,8 @@ let data = {
     rank: ''
 };
 
+let userId = "";
+
 let userRank = {
     userId: "",
     Score: ""
@@ -81,6 +83,7 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
         conv.ask(`Thanks, ${conv.data.name}`);
         return userRef.doc(conv.data.name).get()
             .then(doc => {
+                userId = doc.id;
                 data = doc.data();
                 if (data !== undefined) {
                     conv.ask(`${data.nickname.name}, Select the Level to Start Quiz (1,2,3)?`);
@@ -100,7 +103,7 @@ app.intent('Login', (conv, { name, email, grade }) => {
         email: email,
         grade: grade,
         score: 0,
-        timestamp: Date.now(),
+        timestamp: new Date(),
         rank: 0
     };
     let setDoc = userRef.doc(conv.data.name).set(data);
@@ -120,26 +123,31 @@ app.intent('Set_difficulty', (conv, { level }) => {
     console.log("grade function invoked");
     getQuestion(data.grade);
     conv.ask("Are you ready to Start the Quiz");
+    question_num = 0;
 });
 
 //ask question
 app.intent('Question-Ask', (conv) => {
+    console.log(question_num);
     if (question_num <= max_question) {
         conv.ask(`Question ${question_num+1} ${Questions[question_num].question} , the options  : 
-         ${Questions[question_num].mcq.A},  ${Questions[question_num].mcq.B},   ${Questions[question_num].mcq.C},   ${Questions[question_num].mcq.D}`);
+        1) ${Questions[question_num].mcq.A}
+        2) ${Questions[question_num].mcq.B}
+        3) ${Questions[question_num].mcq.C}
+        4) ${Questions[question_num].mcq.D}`);
     }
 });
 
 // answer question
 app.intent('Question-Answer', (conv, { answer }) => {
-    console.log((Questions[question_num].correct).toString().toLowerCase());
-    console.log(answer.toString().toLowerCase());
-    if ((Questions[question_num].correct).toString().toLowerCase() === (answer.toString().toLowerCase())) {
+    console.log((Questions[question_num].correct).toString());
+    console.log(answer.toString());
+    if ((Questions[question_num].correct).toString() == answer.toString()) {
         data.score += 4;
         conv.ask("You Are Absolutely Correct");
     } else {
         data.score -= 2;
-        conv.ask(`Sorry Your answer is Wrong, the Correct answer is ${Questions[question_num].correct}`);
+        conv.ask("Sorry Your answer is Wrong");
     }
     question_num += 1;
     console.log(question_num);
@@ -154,21 +162,42 @@ app.intent('Score', (conv, { param }) => {
 
 
 //rank leader board
-app.intent('Hour-Rank', (conv, { param }) => {
+app.intent('Hour-Rank', (conv) => {
+    console.log("hour rank intent");
     getRank();
-
-
+    console.log("rank");
+    rank.sort(function(a, b) {
+        return a.score - b.score
+    });
+    console.log("sorting problem");
+    ranklist = "";
+    for (let i = 0; i < rank.length(); i++) {
+        if (i < 10) {
+            ranklist += `${ i + 1 }. ${rank[i].userId} ${rank[i].score}`;
+        }
+        if (rank[i].userId == userId) {
+            conv.ask(`your rank is ${ i + 1 }`);
+            const rank_got = true;
+        }
+        if ((i > 10) && (rank_got)) {
+            break;
+        }
+    }
+    conv.ask(ranklist);
 });
 
 
 
-// // Checks User 
+// Checks User 
 // app.intent('Get Signin', (conv, params, signin) => {
 //     if (signin.status === 'OK') {
 //         const payload = conv.user.profile.payload;
 //         conv.ask(new SimpleResponse({
-//             speech: `I got your account details, ${payload.name}. What do you want to do next?`,
-//             text: `I got your account details, ${payload.name}. What do you want to do next?`
+//             speech: `
+// I got your account details, $ { payload.name }.What do you want to do next ? `,
+//             text: `
+// I
+// got your account details, $ { payload.name }.What do you want to do next ? `
 //         }));
 //         checkUser(payload.email);
 //     } else {
@@ -180,8 +209,8 @@ app.intent('Hour-Rank', (conv, { param }) => {
 // });
 
 function getQuestion(grade) {
-    console.log("question function :" + Number(grade));
-    return questionRef.where('grade', '==', 1).get()
+    console.log("question function :" + grade);
+    return questionRef.where('grade', '==', grade.toString()).get()
         .then(snapshot => {
             if (snapshot.empty) {
                 console.log('No matching documents.');
@@ -196,13 +225,12 @@ function getQuestion(grade) {
         .catch(err => {
             console.log('Error getting documents', err);
         });
-    question_num = 0;
 }
 
 
 function getRank() {
-    console.log();
-    return rankRef.where('grade', '==', 1).get()
+    console.log("rank function");
+    return rankRef.get()
         .then(snapshot => {
             if (snapshot.empty) {
                 console.log('No matching documents.');
