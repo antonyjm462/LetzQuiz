@@ -19,7 +19,6 @@ admin.initializeApp(functions.config().firebase);
 //refrences
 const db = admin.firestore();
 const userRef = db.collection('User');
-const questionRef = ;
 const rankRef = db.collection('Rank');
 
 // Instantiate the Dialogflow client.
@@ -27,7 +26,7 @@ const app = dialogflow({ debug: true, clientId: "695291363421-5046a2a6fe0objsco3
 
 //Initialization
 
-let username = ''
+let score = 0;
 
 let data = {
     nickname: '',
@@ -38,23 +37,15 @@ let data = {
     rank: ''
 };
 
-let userId = "";
-
-let userRank = {
-    userId: "",
-    score: ""
-};
-
 let rank = [];
 
 let Questions = [];
 
 let question_num = 0;
 
-let max_question = 1;
+let max_question = 3;
 
-let question_start = [];
-
+let index = [];
 
 //Welcome intent
 app.intent("Default Welcome Intent", (conv) => {
@@ -71,30 +62,24 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
         conv.ask(guest_ssml);
     } else {
         conv.data.name = conv.user.name.display;
-        username = conv.data.name;
-        const welcome_ssml = '<speak>' +
-            `Thanks ${conv.data.name} <break strength="medium"/>.` +
-            'Welcome to LetzQuiz' +
-            '</speak>';
-        conv.ask(welcome_ssml);
         return userRef.doc(conv.data.name).get()
             .then(doc => {
-                userId = doc.id;
+                conv.data.userId = doc.id;
                 data = doc.data();
+                getQuestion(data.grade);
                 if (data !== undefined) {
-                    const level_ssml = '<speak>' + `${data.nickname},<prosody rate="medium">
+                    const welcome_ssml = '<speak>' + `Thanks ${data.nickname.name},<prosody rate="medium">
                     <p>
                       <s>
-                      Select the Level to Start Quiz
+                      Welcome Back to LetzQuiz!!
+                      <break time="300ms" />
+                      Let's Go on a Learning Journey,<break strength='weak' /> Shall We ? 
                       </s>
-                      <s>1 <break time="500ms" /> </s>
-                      <s>2 <break time="500ms" /> </s>
-                      <s>3 <break time="500ms" /> </s>
                     </p>
                   </prosody>` + '</speak>';
-                    conv.ask(level_ssml);
+                    conv.ask(welcome_ssml);
                 } else {
-                    const login_ssml = '<speak>' + '<p>' + '<parsody rate="medium"> Looks like you are a new User <break time="300ms" /> , Login first!</parsody>' + '</p>' + '</speak>';
+                    const login_ssml = '<speak>' + '<p>' + '<parsody rate="medium"> Welcome to LetzQuiz , <break time="300ms" /> Looks like you are a new User <break time="300ms" /> , Login first!</parsody>' + '</p>' + '</speak>';
                     conv.ask(login_ssml);
                 }
             })
@@ -118,143 +103,163 @@ app.intent('Login', (conv, { name, email, grade }) => {
     let setDoc = userRef.doc(conv.data.name).set(data);
     const newUser_ssml = '<speak>' + '<p>' + '<parsody rate="medium"><s> Your details are saved for future reference .</s> </parsody> <break time="300ms" /> <parsody rate="slow"><s> Here are some Tips :</s> <s> Every Question Has Four options , you can choose any one of it. </s> <break strength="weak" /> <s> If you didn"t hear Question properly you can always ask to repeat.</s> <break strength="weak" /> <s> Your rank will be calculated at end of the Quiz. try to Stay at the Top !!!</s><break strength="weak" /> <s> If you need help Just call Out "help"</s></parsody>' + '</p>' + '</speak>';
     conv.ask(newUser_ssml);
-    const level_ssml = '<speak>' + `${data.nickname},<prosody rate="medium">
-                    <p>
-                      <s>
-                      Select the Level to Start Quiz
-                      </s>
-                      <s>1 <break time="500ms" /> </s>
-                      <s>2 <break time="500ms" /> </s>
-                      <s>3 <break time="500ms" /> </s>
-                    </p>
-                  </prosody>` + '</speak>';
+    const level_ssml = '<speak>' + `${data.nickname.name},<prosody rate="medium">
+    <s>Welcome to LetzQuiz!!<break time="300ms" /> Let's Go on a Learning Journey,<break strength='weak' /> Shall We ? 
+    </s></prosody>` + '</speak>';
     conv.ask(level_ssml);
-});
-
-//set difficulty level
-app.intent('Set_difficulty', (conv, { level }) => {
-    console.log("difficulty");
-    if (level == 1) {
-        max_question = 5;
-    } else if (level == 2) {
-        max_question = 10;
-    } else if (level == 3) {
-        max_question = 15;
-    }
-    getQuestion(data.grade);
-    conv.ask("Are you ready to Start the Quiz");
-    question_num = 1;
 });
 
 //ask question
 app.intent('Question-Ask', (conv) => {
-    console.log(Questions);
-    if (question_num <= max_question) {
-        let index = getRandomInt(Questions.length);
-        const question_ssml = '<speak>' + `<p> <emphasis level="moderate">
-            <s> <prosody rate="medium"> ${Questions[index].question} </prosody> </s>
-            <prosody rate="slow"> <s> <break time="1s" /> 1) ${Questions[index].mcq.A}\n </s>
-            <s> <break time="1s" /> 2) ${Questions[index].mcq.B}\n</s>
-            <s> <break time="1s" /> 3) ${Questions[index].mcq.C}\n</s>
-            <s> <break time="1s" /> 4) ${Questions[index].mcq.D}\n</s> </prosody> </emphasis>
-            </p>` + '</speak>';
+    index = getRandomInt(Questions.length);
+    console.log("question ask" + index);
+    console.log("question index" + index[question_num]);
+    const answer_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+    <s> Remember the answer to questions are</s>
+    <s> <break time="1s" /> a, b, c or d</s> 
+    </p> </prosody>` + '</speak>';
+    conv.ask(answer_ssml);
+    if (question_num < max_question) {
+        const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+            <s> ${Questions[index[question_num]].question} </s>
+            <s> <break time="1s" /> A. ${Questions[index[question_num]].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[index[question_num]].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[index[question_num]].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[index[question_num]].mcq.D} </s> 
+            </p> </prosody>` + '</speak>';
         conv.ask(question_ssml);
     }
-    console.log(conv.data);
+    console.log("end question ask");
 });
 
 //Help
 app.intent('Help', (conv, { param }) => {
     const help_ssml = '<speak>' + '<p>' + '<parsody rate="slow"> <s> Here are some Tips :</s> <s> Every Question Has Four options , you can choose any one of it. </s> <break strength="weak" /> <s> If you didn"t hear Question properly you can always ask to repeat.</s> <break strength="weak" /> <s> Your rank will be calculated at end of the Quiz. try to Stay at the Top !!!</s><break strength="weak" /> <s> If you need help Just call Out "help"</s></parsody>' + '</p>' + '</speak>';
-    conv.ask(" say Login for login\n, repeat for repeating the question etc");
+    conv.ask(help_ssml);
 });
 
 
 // answer question
 app.intent('Question-Answer', (conv, { answer, repeat }) => {
-    console.log("question anser");
-    answer = answer.toString().toLowerCase();
-    if (answer in [a, b, c, d]) {
-        if ((Questions[index].correct).toString().toLowerCase() == answer) {
-            data.score += 4;
-            conv.ask("You Are Absolutely Correct");
+    console.log("question ask" + index);
+    console.log("question index" + index[question_num]);
+    answer = answer.toString().toLowerCase().trim();
+    if ((Questions[index[question_num]].correct).toString().toLowerCase().trim() == answer) {
+        data.score += 4;
+        score += 1;
+        conv.ask("You Are Absolutely Correct");
+    } else {
+        data.score -= 2;
+        score -= 2;
+        conv.ask("Sorry Your answer is Wrong");
+    }
+    question_num += 1;
+    if (question_num < max_question) {
+        if (question_num == max_question - 1) {
+            const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+            <s> This is the last Question , Stay tooned <break strength="weak" /> ${Questions[index[question_num]].question} </s>
+            <s> <break time="1s" /> A. ${Questions[index[question_num]].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[index[question_num]].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[index[question_num]].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[index[question_num]].mcq.D} </s> 
+            </p> </prosody>` + '</speak>';
+            conv.ask(question_ssml);
         } else {
-            data.score -= 2;
-            conv.ask("Sorry Your answer is Wrong");
-        }
-        question_num += 1;
-        let index = getRandomInt(Questions.length);
-        if (question_num <= max_question) {
-            if (question_num == max_question) {
-                const question_ssml = '<speak>' + `<p> <emphasis level="moderate"> this is the last Question
-                <s> <prosody rate="medium"> <break time="1s" /> ${Questions[index].question}</prosody> </s>
-                <prosody rate="slow"> <s> 1) ${Questions[index].mcq.A}\n </s>
-                <s> <break time="1s" /> 2) ${Questions[index].mcq.B}\n</s>
-                <s> <break time="1s" /> 3) ${Questions[index].mcq.C}\n</s>
-                <s> <break time="1s" /> 4) ${Questions[index].mcq.D}\n</s> </prosody> </emphasis>
-                </p>` + '</speak>';
-                conv.ask(question_ssml);
-            } else {
-                const question_ssml = '<speak>' + `<p> <emphasis level="moderate">
-                <s> <prosody rate="medium"> <break time="1s" /> ${Questions[index].question}</prosody> </s>
-                <prosody rate="slow"> <s> <break time="1s" /> 1) ${Questions[index].mcq.A}\n </s>
-                <s> <break time="1s" /> 2) ${Questions[index].mcq.B}\n</s>
-                <s> <break time="1s" /> 3) ${Questions[index].mcq.C}\n</s>
-                <s> <break time="1s" /> 4) ${Questions[index].mcq.D}\n</s> </prosody> </emphasis>
-                </p>` + '</speak>';
-                conv.ask(question_ssml);
-            }
-        } else {
-            conv.ask(`Your Score is Total Score is ${data.score}, Want to Know your rank ?`);
-            let setRank = rankRef.doc(username).set({ score: data.score });
-            let setDoc = userRef.doc(username).set(data);
-            console.log("score set");
-            getRank();
-            console.log(rank);
+            console.log("question ask" + index);
+            console.log("question index" + index[question_num]);
+            const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+            <s> ${Questions[index[question_num]].question} </s>
+            <s> <break time="1s" /> A. ${Questions[index[question_num]].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[index[question_num]].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[index[question_num]].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[index[question_num]].mcq.D} </s> 
+            </p> </prosody>` + '</speak>';
+            conv.ask(question_ssml);
         }
     } else {
-        console.log(repeat);
-        if (repeat.toString().toLowerCase() == "repeat") {
-            console.log(Questions);
-            if (question_num <= max_question) {
-                const question_ssml = '<speak>' + `<p> <emphasis level="moderate">
-            <s> <prosody rate="medium"> ${Questions[index].question} </prosody> </s>
-            <prosody rate="slow"> <s> <break time="1s" /> 1) ${Questions[index].mcq.A}\n </s>
-            <s> <break time="1s" /> 2) ${Questions[index].mcq.B}\n</s>
-            <s> <break time="1s" /> 3) ${Questions[index].mcq.C}\n</s>
-            <s> <break time="1s" /> 4) ${Questions[index].mcq.D}\n</s> </prosody> </emphasis>
-            </p>` + '</speak>';
-                conv.ask(question_ssml);
-            }
-            console.log(conv.data);
+        let setRank = rankRef.doc(conv.data.name).set({ score: data.score });
+        let setDoc = userRef.doc(conv.data.name).set(data);
+        getRank();
+        let rank_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+            <s>  Your Score is ${score} </s>`;
+        if (score > 0) {
+            rank_ssml += '<s>Well done!! </s>';
+        } else {
+            rank_ssml += '<s>Don"t worry, You can Try again ! </s>';
         }
+
+        rank_ssml += '<s> Want to Know your Rank ?  </s> </p> </prosody >' + ' < /speak>';
+        conv.ask(rank_ssml);
     }
+    if (repeat.toString().toLowerCase() == "repeat") {
+        console.log(Questions);
+        if (question_num < max_question) {
+            console.log("question ask" + index);
+            console.log("question index" + index[question_num]);
+            const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+            <s> ${Questions[index[question_num]].question} </s>
+            <s> <break time="1s" /> A. ${Questions[index[question_num]].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[index[question_num]].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[index[question_num]].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[index[question_num]].mcq.D} </s> 
+            </p> </prosody>` + '</speak>';
+            conv.ask(question_ssml);
+        }
+        console.log(conv.data);
+    } else {
+        const option_ssml = '<speak>' + ` < prosody rate = "medium" > < p >
+            <
+            s > The Options Are < /s> <s> <break time = "200ms" / > A,
+            B, C or D < /s>  </p >
+            <
+            /prosody > ` + '</speak > ';
+        conv.ask(option_ssml);
+    }
+    console.log(question_num);
 });
 
 
 
 //rank leader board
-app.intent('Hour-Rank', (conv) => {
-    console.log("rank function");
-    let ranklist = "Rank List \n\n";
+app.intent('Rank-intent', (conv) => {
+    console.log(rank);
+    let ranklist_ssml = '<speak>' + '<prosody rate="medium"> <p> <s> Ranklist </s>';
     for (let i = 0; i < rank.length; i++) {
         if (i < 10) {
-            ranklist += `${ i + 1 }. ${rank[i].userId} ${rank[i].score} \n`;
-            console.log(ranklist);
+            ranklist_ssml += `<s> ${ i + 1 }.${rank[i].userId}${ rank[i].score } </s>`;
+            console.log(ranklist_ssml);
         }
-        if (rank[i].userId == userId) {
-            conv.ask(`your rank is ${ i + 1 }`);
+        if (rank[i].userId == conv.data.userId) {
+            conv.ask(`Your rank is ${ i + 1 }`);
             const rank_got = true;
         }
         if ((i > 10) && (rank_got)) {
             break;
         }
     }
-    conv.ask(ranklist);
+    ranklist_ssml += "<s> How did you Find the Quiz !! </s> </p> <prosody>" + '</speak>';
+    conv.ask(ranklist_ssml);
+    question_num = 0;
+});
+
+app.intent('repeat-Quiz', (conv, { param }) => {
+    const repeat_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+            <s>Your Total Score ${data.score}</s>
+            <s><break time="200ms" /> Do you Want to go Again?  </s> 
+            </p> </prosody>` + '</speak>';
+    conv.ask(repeat_ssml);
 });
 
 function getRandomInt(max) {
-    return Math.floor(Math.random() * Math.floor(max));
+    let rand_array = [];
+    let random = 0;
+    for (let i = 0; i < max && rand_array.length == 10; i++) {
+        random = Math.floor(Math.random() * Math.floor(Math.abs(max - i)));
+        if (!(random in rand_array)) {
+            rand_array.push(random);
+        }
+    }
+    return rand_array.reverse();
 }
 
 function getQuestion(grade) {
@@ -305,6 +310,14 @@ function getRank() {
 //     getRank();
 // });
 
+// //set difficulty level
+// app.intent('Set_difficulty', (conv, { number }) => {
+//     console.log("difficulty");
+//     max_question = Number(number);
+//     getQuestion(data.grade);
+//     conv.ask("Are you ready to Start the Quiz");
+
+// });
 
 
 // // Intent that starts the account linking flow.
