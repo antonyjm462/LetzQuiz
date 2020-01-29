@@ -82,7 +82,10 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
                       </s>
                     </p>
                   </prosody>` + '</speak>';
-                    conv.ask();
+                    conv.ask(new SimpleResponse({
+                        speech: welcome_ssml,
+                        text: `Thanks ${data.nickname.name},\nWelcome Back to LetzQuiz!!\nLet's Go on a Learning Journey,Shall We ? `,
+                    }));
                 } else {
                     const login_ssml = '<speak>' + '<p>' + '<parsody rate="medium"> Welcome to LetzQuiz , <break time="300ms" /> Looks like you are a new User <break time="300ms" /> , Login first!</parsody>' + '</p>' + '</speak>';
                     conv.ask(login_ssml);
@@ -188,17 +191,24 @@ app.intent('Question-Answer', (conv, { answer, repeat }) => {
         let setRank = rankRef.doc(conv.data.name).set({ score: data.score });
         let setDoc = userRef.doc(conv.data.name).set(data);
         getRank();
+        let rank_text = ` Your Score is ${score},`;
         let rank_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
             <s>  Your Score is ${score} </s>`;
         if (score > 0) {
             rank_ssml += '<s> <break time="200ms" /> Well done!! </s>';
+            rank_text += ' Well done!!';
         } else {
             rank_ssml += "<s> Don't worry, <break time='100ms' /> You can always try again ! </s>";
+            rank_text += "Dont worry,You can always try again !";
         }
 
         rank_ssml += '<s> Want to Know your Rank ?  </s> </p> </prosody>' +
             '</speak>';
-        conv.ask(rank_ssml);
+        rank_text += '\nWant to Know your Rank ? ';
+        conv.ask(new SimpleResponse({
+            speech: rank_ssml,
+            text: rank_text,
+        }));
     }
     if (repeat.toString().toLowerCase() == "repeat") {
         console.log(Questions);
@@ -233,8 +243,10 @@ app.intent('Question-Answer', (conv, { answer, repeat }) => {
 app.intent('Rank-intent', (conv) => {
     console.log(rank);
     let ranklist_ssml = '<speak>' + '<prosody rate="medium"> <p> <s> Ranklist </s>';
+    let ranklist_text = 'Ranklist\n';
     for (let i = 0; i < rank.length; i++) {
         if (i < 10) {
+            ranklist_text += `\n ${ i + 1 }.${rank[i].userId}${ rank[i].score }`;
             ranklist_ssml += `<s> <break time="100ms" /> ${ i + 1 }.${rank[i].userId}${ rank[i].score } </s>`;
             console.log(ranklist_ssml);
         }
@@ -246,8 +258,12 @@ app.intent('Rank-intent', (conv) => {
             break;
         }
     }
+    ranklist_text += '\n How did you Find the Quiz !!';
     ranklist_ssml += "<s> <break time='300ms' /> How did you Find the Quiz !! </s> </p> </prosody>" + '</speak>';
-    conv.ask(ranklist_ssml);
+    conv.ask(new SimpleResponse({
+        speech: ranklist_ssml,
+        text: ranklist_text,
+    }));
     question_num = 0;
 });
 
@@ -256,7 +272,11 @@ app.intent('repeat-Quiz', (conv, { param }) => {
             <s>Your Total Score ${data.score}</s>
             <s><break time="200ms" /> Do you Want to go Again?  </s> 
             </p> </prosody>` + '</speak>';
-    conv.ask(repeat_ssml);
+    const repeat_text = `Your Total Score ${data.score}\n Do you Want to go Again?`;
+    conv.ask(new SimpleResponse({
+        speech: repeat_ssml,
+        text: repeat_text,
+    }));
 });
 
 app.intent('Close-intent', (conv, { param }) => {
@@ -316,56 +336,58 @@ function getRank() {
         });
 }
 
-//Score board
-// app.intent('Score', (conv, { param }) => {
-//     conv.ask(`Your Score is ${data.score}`);
-//     let setDoc = userRef.doc(username).set(data);
-//     let setRank = rankRef.doc(data.nickname).set({ score: data.score });
-//     getRank();
-// });
+// //Score board
+// // app.intent('Score', (conv, { param }) => {
+// //     conv.ask(`
+// Your Score is $ { data.score }
+// `);
+// //     let setDoc = userRef.doc(username).set(data);
+// //     let setRank = rankRef.doc(data.nickname).set({ score: data.score });
+// //     getRank();
+// // });
 
-// //set difficulty level
-// app.intent('Set_difficulty', (conv, { number }) => {
-//     console.log("difficulty");
-//     max_question = Number(number);
-//     getQuestion(data.grade);
-//     conv.ask("Are you ready to Start the Quiz");
+// // //set difficulty level
+// // app.intent('Set_difficulty', (conv, { number }) => {
+// //     console.log("difficulty");
+// //     max_question = Number(number);
+// //     getQuestion(data.grade);
+// //     conv.ask("Are you ready to Start the Quiz");
 
-// });
+// // });
 
 
-// // Intent that starts the account linking flow.
-// app.intent('Start Signin', (conv) => {
-//     conv.ask(new SignIn('To get your account details'));
-// });
+// // // Intent that starts the account linking flow.
+// // app.intent('Start Signin', (conv) => {
+// //     conv.ask(new SignIn('To get your account details'));
+// // });
 
-// //intent for permission
-// app.intent('Ask Permission', (conv) => {
-//     conv.ask(new Permission({
-//         context: 'Hi there, to get to know you better',
-//         permissions: 'NAME'
-//     }));
-// });
+// // //intent for permission
+// // app.intent('Ask Permission', (conv) => {
+// //     conv.ask(new Permission({
+// //         context: 'Hi there, to get to know you better',
+// //         permissions: 'NAME'
+// //     }));
+// // });
 
-// Checks User 
-// app.intent('Get Signin', (conv, params, signin) => {
-//     if (signin.status === 'OK') {
-//         const payload = conv.user.profile.payload;
-//         conv.ask(new SimpleResponse({
-//             speech: `
-// I got your account details, $ { payload.name }.What do you want to do next ? `,
-//             text: `
-// I
-// got your account details, $ { payload.name }.What do you want to do next ? `
-//         }));
-//         checkUser(payload.email);
-//     } else {
-//         conv.ask(new SimpleResponse({
-//             speech: "I won't be able to save your data, but try signin up?",
-//             text: "I won't be able to save your data, but what do you want to do next?"
-//         }));
-//     }
-// });
+// // Checks User 
+// // app.intent('Get Signin', (conv, params, signin) => {
+// //     if (signin.status === 'OK') {
+// //         const payload = conv.user.profile.payload;
+// //         conv.ask(new SimpleResponse({
+// //             speech: `
+// // I got your account details, $ { payload.name }.What do you want to do next ? `,
+// //             text: `
+// // I
+// // got your account details, $ { payload.name }.What do you want to do next ? `
+// //         }));
+// //         checkUser(payload.email);
+// //     } else {
+// //         conv.ask(new SimpleResponse({
+// //             speech: "I won't be able to save your data, but try signin up?",
+// //             text: "I won't be able to save your data, but what do you want to do next?"
+// //         }));
+// //     }
+// // });
 
 
 //Export fulfillment
