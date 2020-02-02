@@ -50,9 +50,13 @@ let max_question = 3;
 
 let index = [];
 
+<<<<<<< HEAD
 let no = 0;
 
 let total_question_no = 20;
+=======
+let total_question_no = 15;
+>>>>>>> Limited-Queries
 //Welcome intent
 app.intent("Default Welcome Intent", (conv) => {
     conv.ask(new Permission({
@@ -156,22 +160,19 @@ app.intent('Login', (conv, { name, grade }) => {
 
 //ask question
 app.intent('Question-Ask', (conv) => {
-    index = getRandomInt(Questions.length);
-    console.log("question ask" + index);
-    console.log("question index" + no);
+    console.log("question ask" + Question);
     const answer_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
     <s> Remember the answer to questions are</s>
     <s> <break time="1s" /> a, b, c or d</s> 
     </p> </prosody>` + '</speak>';
     conv.ask(answer_ssml);
-    no = Number(index[question_num]);
     if (question_num < max_question) {
         const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
-            <s> ${Questions[no].question} </s>
-            <s> <break time="1s" /> A. ${Questions[no].mcq.A} </s>
-            <s> <break time="1s" /> B. ${Questions[no].mcq.B} </s>
-            <s> <break time="1s" /> C. ${Questions[no].mcq.C} </s>
-            <s> <break time="1s" /> D. ${Questions[no].mcq.D} </s> 
+            <s> ${Questions[question_num].question} </s>
+            <s> <break time="1s" /> A. ${Questions[question_num].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[question_num].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[question_num].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[question_num].mcq.D} </s> 
             </p> </prosody>` + '</speak>';
         conv.ask(question_ssml);
     }
@@ -189,8 +190,8 @@ app.intent('Help', (conv, { param }, permissionGranted) => {
 app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
     console.log("question ask" + index);
     console.log("question index" + index[question_num]);
-    no = Number(index[question_num]);
     answer = answer.toString().toLowerCase().trim();
+<<<<<<< HEAD
     if (permissionGranted) {
         if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
             data.score += 4;
@@ -201,6 +202,12 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
             score -= 2;
             conv.ask(wrong_respose[question_num]);
         }
+=======
+    if ((Questions[question_num].correct).toString().toLowerCase().trim() == answer) {
+        data.score += 4;
+        score += 4;
+        conv.ask(correct_response[question_num]);
+>>>>>>> Limited-Queries
     } else {
         if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
             score += 4;
@@ -211,26 +218,25 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
         }
     }
     question_num += 1;
-    no = Number(index[question_num]);
     if (question_num < max_question) {
         if (question_num == max_question - 1) {
             const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
-            <s> This is the last Question , Stay tooned <break strength="weak" /> ${Questions[no].question} </s>
-            <s> <break time="1s" /> A. ${Questions[no].mcq.A} </s>
-            <s> <break time="1s" /> B. ${Questions[no].mcq.B} </s>
-            <s> <break time="1s" /> C. ${Questions[no].mcq.C} </s>
-            <s> <break time="1s" /> D. ${Questions[no].mcq.D} </s> 
+            <s> This is the last Question , Stay tooned <break strength="weak" /> ${Questions[question_num].question} </s>
+            <s> <break time="1s" /> A. ${Questions[question_num].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[question_num].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[question_num].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[question_num].mcq.D} </s> 
             </p> </prosody>` + '</speak>';
             conv.ask(question_ssml);
         } else {
             console.log("question ask" + index);
-            console.log("question index" + no);
+            console.log("question index" + question_num);
             const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
-            <s> ${Questions[no].question} </s>
-            <s> <break time="1s" /> A. ${Questions[no].mcq.A} </s>
-            <s> <break time="1s" /> B. ${Questions[no].mcq.B} </s>
-            <s> <break time="1s" /> C. ${Questions[no].mcq.C} </s>
-            <s> <break time="1s" /> D. ${Questions[no].mcq.D} </s> 
+            <s> ${Questions[question_num].question} </s>
+            <s> <break time="1s" /> A. ${Questions[question_num].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[question_num].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[question_num].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[question_num].mcq.D} </s> 
             </p> </prosody>` + '</speak>';
             conv.ask(question_ssml);
         }
@@ -268,13 +274,13 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
         console.log(Questions);
         if (question_num < max_question) {
             console.log("question ask" + index);
-            console.log("question index" + no);
+            console.log("question index" + question_num);
             const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
-            <s> ${Questions[no].question} </s>
-            <s> <break time="1s" /> A. ${Questions[no].mcq.A} </s>
-            <s> <break time="1s" /> B. ${Questions[no].mcq.B} </s>
-            <s> <break time="1s" /> C. ${Questions[no].mcq.C} </s>
-            <s> <break time="1s" /> D. ${Questions[no].mcq.D} </s> 
+            <s> ${Questions[question_num].question} </s>
+            <s> <break time="1s" /> A. ${Questions[question_num].mcq.A} </s>
+            <s> <break time="1s" /> B. ${Questions[question_num].mcq.B} </s>
+            <s> <break time="1s" /> C. ${Questions[question_num].mcq.C} </s>
+            <s> <break time="1s" /> D. ${Questions[question_num].mcq.D} </s> 
             </p> </prosody>` + '</speak>';
             conv.ask(question_ssml);
         }
@@ -365,20 +371,23 @@ function getRandomInt(max) {
 
 function getQuestion(grade) {
     Questions = [];
-    return db.collection('Questions:' + grade.toString()).get()
-        .then(snapshot => {
-            if (snapshot.empty) {
-                console.log('No matching documents.');
-                return;
-            }
+    const gradeQuestionRef = db.collection('Questions:' + grade.toString());
+    index = getRandomInt(total_question_no);
+    console.log("inside get question" + index);
+    for (let i = 0; i < index.length; i++) {
+        let question = pickQuestion(index[i], gradeQuestionRef);
+    }
+    console.log(Questions);
+}
 
-            snapshot.forEach(doc => {
-                Questions.push(doc.data())
-                console.log(doc.id, '=>', doc.data());
-            });
+function pickQuestion(id, gradeQuestionRef) {
+    return gradeQuestionRef.doc(id).get()
+        .then(doc => {
+            Questions.push(doc.data())
+            console.log(doc.id, '=>', doc.data());
         })
         .catch(err => {
-            console.log('Error getting documents', err);
+            console.log('Error getting document', err);
         });
 }
 
