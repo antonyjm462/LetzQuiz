@@ -30,7 +30,6 @@ let score = 0;
 
 let data = {
     nickname: '',
-    email: '',
     grade: '',
     score: '',
     timestamp: '',
@@ -53,7 +52,7 @@ let index = [];
 
 let no = 0;
 
-let is_guest = false;
+let total_question_no = 20;
 //Welcome intent
 app.intent("Default Welcome Intent", (conv) => {
     conv.ask(new Permission({
@@ -66,12 +65,11 @@ app.intent("Default Welcome Intent", (conv) => {
 app.intent('Permission_check', (conv, params, permissionGranted) => {
     if (!permissionGranted) {
         console.log(permissionGranted);
-        is_guest = true;
         console.log("permission not garented");
         const welcome_ssml = '<speak>' + `Ok, no worries.<break time="300ms" />You can Play as Guest,<prosody rate="medium">
                     <p>
                       <s>
-                      Select The Grade to Play ,
+                      Select The Grade to Play 
                       <break time="300ms" />
                       1,2,3
                       </s>
@@ -81,12 +79,14 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
     } else {
         console.log(permissionGranted);
         conv.data.name = conv.user.name.display;
+        console.log("outside doc" + conv.data.name);
         return userRef.doc(conv.data.name).get()
             .then(doc => {
+                console.log("inside doc");
                 conv.data.userId = doc.id;
                 data = doc.data();
-                getQuestion(data.grade);
                 if (data !== undefined) {
+                    getQuestion(data.grade);
                     const welcome_ssml = '<speak>' + `Thanks ${data.nickname.name},<prosody rate="medium">
                     <p>
                       <s>
@@ -98,11 +98,16 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
                   </prosody>` + '</speak>';
                     conv.ask(welcome_ssml);
                 } else {
-                    const login_ssml = '<speak>' + '<p>' + '<parsody rate="medium"> Welcome to LetzQuiz , <break time="300ms" /> Looks like you are a new User <break time="300ms" /> , Login first!</parsody>' + '</p>' + '</speak>';
+                    const login_ssml = '<speak>' + `Welcome to LetzQuiz !<break time="300ms" />  <prosody rate="medium"> <p> 
+    <s> Looks like you are a new user <break time="300ms" /> </s>
+    <s> Login first!</s> 
+    </p> </prosody>` + '</speak>';
                     conv.ask(login_ssml);
+                    console.log("inside else");
                 }
             })
             .catch(err => {
+                console.log("inside error");
                 console.log('Error getting document', err);
             });
     }
@@ -131,11 +136,10 @@ app.intent('Choose_intent', (conv, { number }) => {
 });
 
 //Login 
-app.intent('Login', (conv, { name, email, grade }) => {
+app.intent('Login', (conv, { name, grade }) => {
     console.log("login intent");
     data = {
         nickname: name,
-        email: email,
         grade: grade,
         score: 0,
         timestamp: new Date(),
@@ -175,26 +179,36 @@ app.intent('Question-Ask', (conv) => {
 });
 
 //Help
-app.intent('Help', (conv, { param }) => {
+app.intent('Help', (conv, { param }, permissionGranted) => {
     const help_ssml = '<speak>' + '<p>' + '<parsody rate="slow"> <s> Here are some Tips :</s> <s> Every Question Has Four options , you can choose any one of it. </s> <break strength="weak" /> <s> If you didn"t hear Question properly you can always ask to repeat.</s> <break strength="weak" /> <s> Your rank will be calculated at end of the Quiz. try to Stay at the Top !!!</s><break strength="weak" /> <s> If you need help Just call Out "help"</s></parsody>' + '</p>' + '</speak>';
     conv.ask(help_ssml);
 });
 
 
 // answer question
-app.intent('Question-Answer', (conv, { answer, repeat }) => {
+app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
     console.log("question ask" + index);
     console.log("question index" + index[question_num]);
     no = Number(index[question_num]);
     answer = answer.toString().toLowerCase().trim();
-    if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
-        data.score += 4;
-        score += 4;
-        conv.ask(correct_response[question_num]);
+    if (permissionGranted) {
+        if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
+            data.score += 4;
+            score += 4;
+            conv.ask(correct_response[question_num]);
+        } else {
+            data.score -= 2;
+            score -= 2;
+            conv.ask(wrong_respose[question_num]);
+        }
     } else {
-        data.score -= 2;
-        score -= 2;
-        conv.ask(wrong_respose[question_num]);
+        if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
+            score += 4;
+            conv.ask(correct_response[question_num]);
+        } else {
+            score -= 2;
+            conv.ask(wrong_respose[question_num]);
+        }
     }
     question_num += 1;
     no = Number(index[question_num]);
@@ -221,7 +235,7 @@ app.intent('Question-Answer', (conv, { answer, repeat }) => {
             conv.ask(question_ssml);
         }
     } else {
-        if (is_guest) {
+        if (!permissionGranted) {
             let rank_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
             <s>  Your Score is ${score} </s>`;
             if (score > 0) {
@@ -280,12 +294,12 @@ app.intent('Question-Answer', (conv, { answer, repeat }) => {
 
 
 //rank leader board
-app.intent('Rank-intent', (conv) => {
-    if (is_guest) {
+app.intent('Rank-intent', (conv, { param }, permissionGranted) => {
+    if (!permissionGranted) {
         const guest_rank_ssml = '<speak>' + `<prosody rate="medium">
                         <p>
                           <s>
-                          Sorry Rank can only be calculated if you have logined
+                          Sorry Rank can only be calculated if you have login
                           <break time="500ms" />
                           but,How did you Find the Quiz !!? 
                           </s>
