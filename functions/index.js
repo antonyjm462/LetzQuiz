@@ -50,14 +50,8 @@ let max_question = 3;
 
 let index = [];
 
-<<<<<<< HEAD
-let no = 0;
-
-let total_question_no = 20;
-=======
 let total_question_no = 15;
->>>>>>> Limited-Queries
-//Welcome intent
+
 app.intent("Default Welcome Intent", (conv) => {
     conv.ask(new Permission({
         context: 'Hi there to get,to know you better',
@@ -191,7 +185,6 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
     console.log("question ask" + index);
     console.log("question index" + index[question_num]);
     answer = answer.toString().toLowerCase().trim();
-<<<<<<< HEAD
     if (permissionGranted) {
         if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
             data.score += 4;
@@ -202,12 +195,6 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
             score -= 2;
             conv.ask(wrong_respose[question_num]);
         }
-=======
-    if ((Questions[question_num].correct).toString().toLowerCase().trim() == answer) {
-        data.score += 4;
-        score += 4;
-        conv.ask(correct_response[question_num]);
->>>>>>> Limited-Queries
     } else {
         if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
             score += 4;
