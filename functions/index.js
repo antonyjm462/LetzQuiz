@@ -51,7 +51,7 @@ let max_question = 3;
 
 let index = [];
 
-let total_question_no = 20;
+let total_question_no = 15;
 //Welcome intent
 app.intent("Default Welcome Intent", (conv) => {
     conv.ask(new Permission({
@@ -346,13 +346,15 @@ function getQuestion(grade) {
     Questions = [];
     const gradeQuestionRef = db.collection('Questions:' + grade.toString());
     index = getRandomInt(total_question_no);
+    console.log("inside get question" + index);
     for (let i = 0; i < index.length; i++) {
-        let Question = pickQuestion(index[i], gradeQuestionRef);
+        let question = pickQuestion(index[i], gradeQuestionRef);
     }
+    console.log(Questions);
 }
 
 function pickQuestion(id, gradeQuestionRef) {
-    return gradeQuestionRef.doc(conv.data.name).get()
+    return gradeQuestionRef.doc(id).get()
         .then(doc => {
             Questions.push(doc.data())
             console.log(doc.id, '=>', doc.data());
