@@ -152,7 +152,7 @@ app.intent('Login', (conv, { name, grade }) => {
 
 //ask question
 app.intent('Question-Ask', (conv) => {
-    console.log("question ask" + Question);
+    console.log("question ask");
     const answer_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
     <s> Remember the answer to questions are</s>
     <s> <break time="1s" /> a, b, c or d</s> 
@@ -180,11 +180,10 @@ app.intent('Help', (conv, { param }, permissionGranted) => {
 
 // answer question
 app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
-    console.log("question ask" + index);
-    console.log("question index" + index[question_num]);
+    console.log("question answer");
     answer = answer.toString().toLowerCase().trim();
     if (permissionGranted) {
-        if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
+        if ((Questions[question_num].correct).toString().toLowerCase().trim() == answer) {
             data.score += 4;
             score += 4;
             conv.ask(correct_response[question_num]);
@@ -194,7 +193,7 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
             conv.ask(wrong_respose[question_num]);
         }
     } else {
-        if ((Questions[no].correct).toString().toLowerCase().trim() == answer) {
+        if ((Questions[question_num].correct).toString().toLowerCase().trim() == answer) {
             score += 4;
             conv.ask(correct_response[question_num]);
         } else {
@@ -279,7 +278,7 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
             /prosody > ` + '</speak > ';
         conv.ask(option_ssml);
     }
-    console.log(question_num);
+    console.log("Question answer");
 });
 
 
@@ -344,7 +343,7 @@ app.intent('Question_Answer_no', (conv, { param }) => {
 function getRandomInt(max) {
     let rand_array = [];
     let random = 0;
-    for (let i = 0; i < max && rand_array.length != 11; i++) {
+    for (let i = 0; i < max || rand_array.length != 12; i++) {
         random = Math.floor(Math.random() * Math.floor(max));
         random = random.toString();
         if (!(random in rand_array)) {
@@ -355,6 +354,8 @@ function getRandomInt(max) {
 }
 
 function getQuestion(grade) {
+    let index = [];
+    console.log("get Question");
     Questions = [];
     const gradeQuestionRef = db.collection('Questions:' + grade.toString());
     index = getRandomInt(total_question_no);
@@ -362,18 +363,21 @@ function getQuestion(grade) {
     for (let i = 0; i < index.length; i++) {
         let question = pickQuestion(index[i], gradeQuestionRef);
     }
-    console.log(Questions);
+    console.log("end get Question");
 }
 
 function pickQuestion(id, gradeQuestionRef) {
+    console.log("pick Question");
     return gradeQuestionRef.doc(id).get()
         .then(doc => {
+            console.log("this invocation");
             Questions.push(doc.data())
             console.log(doc.id, '=>', doc.data());
         })
         .catch(err => {
             console.log('Error getting document', err);
         });
+    console.log("pick Question");
 }
 
 
