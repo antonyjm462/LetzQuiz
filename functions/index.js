@@ -4,9 +4,7 @@
 const {
     dialogflow,
     SimpleResponse,
-    Permission,
-    Suggestions,
-    SignIn,
+    Permission
 } = require('actions-on-google');
 
 // Import the firebase-functions package for deployment.
