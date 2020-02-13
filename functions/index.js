@@ -4,7 +4,9 @@
 const {
     dialogflow,
     SimpleResponse,
-    Permission
+    Permission,
+    Suggestions,
+    SignIn,
 } = require('actions-on-google');
 
 // Import the firebase-functions package for deployment.
@@ -26,13 +28,15 @@ const app = dialogflow({ debug: true, clientId: "695291363421-5046a2a6fe0objsco3
 
 let score = 0;
 
-let data = {
-    nickname: '',
-    grade: '',
-    score: '',
-    timestamp: '',
-    rank: ''
-};
+// let data = {
+//     nickname: '',
+//     grade: '',
+//     score: 0,
+//     timestamp: 0,
+//     rank: 0
+// };
+
+let data = {};
 
 let correct_response = ["You are absolutely correct", "Bravo, the answer is correct", "Perfect, Way to go", "Nice Work, thats right", "Great Work, you got it Right", "You Must be feeling Lucky today, thats Right", "Thats also right, Good Job", "Yes,Great Job", "the Judges say Yes, You got it", "I'll give it to you.Good Job", "You've been studing..Great job!", "Yes,thats right"];
 
@@ -48,7 +52,7 @@ let max_question = 3;
 
 let index = [];
 
-let total_question_no = 15;
+let total_question_no = 20;
 
 app.intent("Default Welcome Intent", (conv) => {
     conv.ask(new Permission({
@@ -75,14 +79,12 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
     } else {
         console.log(permissionGranted);
         conv.data.name = conv.user.name.display;
-        console.log("outside doc" + conv.data.name);
         return userRef.doc(conv.data.name).get()
             .then(doc => {
-                console.log("inside doc");
                 conv.data.userId = doc.id;
                 data = doc.data();
+                getQuestion(data.grade);
                 if (data !== undefined) {
-                    getQuestion(data.grade);
                     const welcome_ssml = '<speak>' + `Thanks ${data.nickname.name},<prosody rate="medium">
                     <p>
                       <s>
@@ -94,16 +96,11 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
                   </prosody>` + '</speak>';
                     conv.ask(welcome_ssml);
                 } else {
-                    const login_ssml = '<speak>' + `Welcome to LetzQuiz !<break time="300ms" />  <prosody rate="medium"> <p> 
-    <s> Looks like you are a new user <break time="300ms" /> </s>
-    <s> Login first!</s> 
-    </p> </prosody>` + '</speak>';
+                    const login_ssml = '<speak>' + '<p>' + '<parsody rate="medium"> Welcome to LetzQuiz , <break time="300ms" /> Looks like you are a new User <break time="300ms" /> , Login first!</parsody>' + '</p>' + '</speak>';
                     conv.ask(login_ssml);
-                    console.log("inside else");
                 }
             })
             .catch(err => {
-                console.log("inside error");
                 console.log('Error getting document', err);
             });
     }
@@ -111,8 +108,8 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
 
 //choose
 app.intent('Choose_intent', (conv, { number }) => {
-    console.log(number);
     getQuestion(number.toString());
+    question_num = 0;
     const guest_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
     <s>You Are using Guest Account</s>
     <s><break time="400ms" />Sorry <break time="100ms" />Your Scores Will not be Saved</s> 
@@ -159,6 +156,7 @@ app.intent('Question-Ask', (conv) => {
     </p> </prosody>` + '</speak>';
     conv.ask(answer_ssml);
     if (question_num < max_question) {
+        console.log("question no less inn ask");
         const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
             <s> ${Questions[question_num].question} </s>
             <s> <break time="1s" /> A. ${Questions[question_num].mcq.A} </s>
@@ -239,8 +237,8 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
             conv.ask(rank_ssml);
         } else {
             let setRank = rankRef.doc(conv.data.name).set({ score: data.score });
-            let setDoc = userRef.doc(conv.data.name).set(data);
             getRank();
+            let setDoc = userRef.doc(conv.data.name).set(data);
             let rank_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
             <s>  Your Score is ${score} </s>`;
             if (score > 0) {
@@ -270,12 +268,10 @@ app.intent('Question-Answer', (conv, { answer, repeat, permissionGranted }) => {
         }
         console.log(conv.data);
     } else {
-        const option_ssml = '<speak>' + ` < prosody rate = "medium" > < p >
-            <
-            s > The Options Are < /s> <s> <break time = "200ms" / > A,
-            B, C or D < /s>  </p >
-            <
-            /prosody > ` + '</speak > ';
+        const option_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
+    <s>The Answers are</s>
+    <s><break time="100ms" />a,b,c and d</s> 
+    </p> </prosody>` + '</speak>';
         conv.ask(option_ssml);
     }
     console.log("Question answer");
@@ -326,7 +322,7 @@ app.intent('repeat-Quiz', (conv, { param }) => {
     conv.ask(repeat_ssml);
 });
 
-//close intent
+
 app.intent('Close-intent', (conv, { param }) => {
     conv.close("Bye Come again Soon!!!");
 });
@@ -343,10 +339,10 @@ app.intent('Question_Answer_no', (conv, { param }) => {
 function getRandomInt(max) {
     let rand_array = [];
     let random = 0;
-    for (let i = 0; i < max || rand_array.length != 12; i++) {
+    for (let i = 0; i < max || rand_array.length != 10; i++) {
         random = Math.floor(Math.random() * Math.floor(max));
         random = random.toString();
-        if (!(random in rand_array)) {
+        if (!(rand_array.includes(random))) {
             rand_array.push(random);
         }
     }
@@ -367,17 +363,14 @@ function getQuestion(grade) {
 }
 
 function pickQuestion(id, gradeQuestionRef) {
-    console.log("pick Question");
     return gradeQuestionRef.doc(id).get()
         .then(doc => {
-            console.log("this invocation");
             Questions.push(doc.data())
             console.log(doc.id, '=>', doc.data());
         })
         .catch(err => {
             console.log('Error getting document', err);
         });
-    console.log("pick Question");
 }
 
 
@@ -400,60 +393,6 @@ function getRank() {
             console.log('Error getting documents', err);
         });
 }
-
-// //Score board
-// // app.intent('Score', (conv, { param }) => {
-// //     conv.ask(`
-// Your Score is $ { data.score }
-// `);
-// //     let setDoc = userRef.doc(username).set(data);
-// //     let setRank = rankRef.doc(data.nickname).set({ score: data.score });
-// //     getRank();
-// // });
-
-// // //set difficulty level
-// // app.intent('Set_difficulty', (conv, { number }) => {
-// //     console.log("difficulty");
-// //     max_question = Number(number);
-// //     getQuestion(data.grade);
-// //     conv.ask("Are you ready to Start the Quiz");
-
-// // });
-
-
-// // // Intent that starts the account linking flow.
-// // app.intent('Start Signin', (conv) => {
-// //     conv.ask(new SignIn('To get your account details'));
-// // });
-
-// // //intent for permission
-// // app.intent('Ask Permission', (conv) => {
-// //     conv.ask(new Permission({
-// //         context: 'Hi there, to get to know you better',
-// //         permissions: 'NAME'
-// //     }));
-// // });
-
-// // Checks User 
-// // app.intent('Get Signin', (conv, params, signin) => {
-// //     if (signin.status === 'OK') {
-// //         const payload = conv.user.profile.payload;
-// //         conv.ask(new SimpleResponse({
-// //             speech: `
-// // I got your account details, $ { payload.name }.What do you want to do next ? `,
-// //             text: `
-// // I
-// // got your account details, $ { payload.name }.What do you want to do next ? `
-// //         }));
-// //         checkUser(payload.email);
-// //     } else {
-// //         conv.ask(new SimpleResponse({
-// //             speech: "I won't be able to save your data, but try signin up?",
-// //             text: "I won't be able to save your data, but what do you want to do next?"
-// //         }));
-// //     }
-// // });
-
 
 //Export fulfillment
 exports.fulfillment = functions.https.onRequest(app);
