@@ -40,7 +40,7 @@ let Questions = [];
 
 let question_num = 0;
 
-const max_question = 5;
+const max_question = 3;
 
 let is_guest = false;
 
