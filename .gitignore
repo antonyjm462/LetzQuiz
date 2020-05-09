@@ -68,5 +68,4 @@ node_modules/
 .env
 
 #files not needed
-assets/
 imp.txt
