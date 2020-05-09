@@ -32,6 +32,11 @@ const wrong_respose = ["Sorry Your answer is Wrong", "So sorry, the answer is no
 
 const welcome_response = ["Missed you Already", "Didn't see you Yesterday", "It has been a while"]
 
+const REPEAT_PREFIX = [
+    'Sorry, I said ',
+    'Let me repeat that. ',
+];
+
 let rank = [];
 
 let Questions = [];
@@ -53,7 +58,6 @@ app.intent("Default Welcome Intent", (conv) => {
 
 //permission check 
 app.intent('Permission_check', (conv, params, permissionGranted) => {
-    console.log("inside permission check", permissionGranted);
     if (!permissionGranted) {
         conv.data.is_guest = true;
         console.log("permission not garented");
@@ -67,19 +71,15 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
         conv.ask(welcome_ssml);
     } else {
         conv.data.name = conv.user.name.display;
-        console.log("user" + conv.data.name);
         return userRef.doc(conv.data.name).get()
             .then(doc => {
                 if (doc.exists) {
-                    console.log("inside user");
                     conv.data.Userdata = doc.data();
-                    console.log(conv.data.Userdata.grade);
-                    console.log(typeof(conv.data.Userdata.grade));
-                    //let qes = getQuestion(conv.data.Userdata.grade);
-                    console.log("after question");
-                    conv.data.userId = doc.id;
-                    const welcome_ssml = '<speak>' + `Hai ${conv.data.Userdata.nickname.name},<prosody rate="medium">
+                    Questions = getQuestion(conv.data.Userdata.grade);
+                    conv.data.Questions = Questions;
+                    const welcome_ssml = '<speak>' + `<prosody rate="medium">
                     <p>
+                      <s>Hai ${conv.data.Userdata.nickname.name},</s>
                       <s> Welcome Back to LetzQuiz , ${conv.data.welcome_response} </s>
                       <s><break time="300ms" />Shall We Start?</s>
                     </p>
@@ -89,8 +89,8 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
                     console.log("doc not exist");
                     const login_ssml = '<speak>' + `<prosody rate="medium">
                     <p>
-                      <s> Hmm...</s>
-                      <s><break time="300ms" /> Looks like you are a new User<break strength='weak' /> Login First ! </s>
+                      <s> Hmm...<break time="300ms" /> </s>
+                      <s>Looks like you are a new User<break strength='weak' /> Login First ! </s>
                     </p>
                   </prosody>` + '</speak>';
                     conv.ask(login_ssml);
@@ -105,7 +105,7 @@ app.intent('Permission_check', (conv, params, permissionGranted) => {
 
 //choose
 app.intent('Choose_intent', (conv, { number }) => {
-    let qes = getQuestion(number.toString());
+    Questions = getQuestion(number.toString());
     const guest_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
     <s>You Are using Guest Account</s>
     <s><break time="400ms" />Sorry <break time="100ms" />Your Scores Will not be Saved</s> 
@@ -138,19 +138,21 @@ app.intent('Login', (conv, { name, grade }) => {
         <s> Your rank will be calculated at end of the Quiz. try to Stay at the Top !!!</s>
         <s> If you need help Just call Out</s>` + '</p>' + '</speak>';
     conv.ask(newUser_ssml);
-    const welcome_ssml = '<speak>' + `Hai ${conv.data.Userdata.nickname.name},<prosody rate="medium">
+    const welcome_ssml = '<speak>' + `<prosody rate="medium">
                     <p>
+                      <s>Hai ${conv.data.Userdata.nickname.name},</s>
                       <s> Welcome to LetzQuiz</s>
                       <s><break time="300ms" />Shall We Start?</s>
                     </p>
                   </prosody>` + '</speak>';
     conv.ask(welcome_ssml);
     let userREF = userRef.doc(conv.data.name).set(conv.data.Userdata);
-    let qes = getQuestion(conv.data.Userdata.grade);
+    Questions = getQuestion(conv.data.Userdata.grade);
 });
 
 //ask question
 app.intent('Question-Ask', (conv) => {
+    console.log("data", conv.data.Questions);
     const answer_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
     <s> Remember the answer to questions are</s>
     <s> <break time="1s" /> a, b, c or d</s> 
@@ -163,7 +165,6 @@ app.intent('Question-Ask', (conv) => {
         </p> </prosody>` + '</speak>';
         conv.ask(error_ssml);
     }
-    while (Questions.length == 0);
     if (conv.data.question_num < max_question) {
         const question_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
             <s> ${Questions[conv.data.question_num].question} </s>
@@ -226,7 +227,7 @@ app.intent('Question-Answer', (conv, { answer, repeat }) => {
             let setDoc = userRef.doc(conv.data.name).set(conv.data.Userdata);
             getRank();
             let rank_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
-            <s>  Your Score is ${conv.data.score} </s>`;
+            <s> ${conv.data.Userdata.nickname.name} Your Score is ${conv.data.score},</s>`;
             if (conv.data.score > 0) {
                 rank_ssml += '<s> <break time="200ms" /> Well done!! </s>';
             } else {
@@ -249,9 +250,7 @@ app.intent('Question-Answer', (conv, { answer, repeat }) => {
             </p> </prosody>` + '</speak>';
             conv.ask(question_ssml);
         }
-        console.log(conv.data);
     }
-    console.log(conv.data.question_num);
 });
 
 
@@ -277,7 +276,7 @@ app.intent('Rank-intent', (conv) => {
                 ranklist_ssml += `<s>  ${ i + 1 } <break time="100ms" /> ${rank[i].userId} </s>`;
                 console.log(ranklist_ssml);
             }
-            if (rank[i].userId == conv.data.userId) {
+            if (rank[i].userId == conv.data.name) {
                 conv.ask(`Your rank is ${ i + 1 }`);
                 const rank_got = true;
             }
@@ -285,7 +284,7 @@ app.intent('Rank-intent', (conv) => {
                 break;
             }
         }
-        ranklist_ssml += "<s> <break time='300ms' /> How did you Find the Quiz !! </s> </p> </prosody>" + '</speak>';
+        ranklist_ssml += `<s> <break time='300ms' /> ${conv.data.Userdata.nickname.name} How did you Find the Quiz !! </s> </p> </prosody>` + '</speak>';
         conv.ask(ranklist_ssml);
     }
     conv.data.question_num = 0;
@@ -293,24 +292,32 @@ app.intent('Rank-intent', (conv) => {
 
 app.intent('repeat-Quiz', (conv, { param }) => {
     const repeat_ssml = '<speak>' + ` <prosody rate="medium"> <p> 
-            <s>Thanks for Your Feed Back.</s>
+            <s>Thanks for Your Feed Back,${conv.data.Userdata.nickname.name}</s>
             <s><break time="200ms" /> Do you Want to go Again?  </s> 
             </p> </prosody>` + '</speak>';
     conv.ask(repeat_ssml);
-    let qes = getQuestion(conv.data.Userdata.grade);
+    Questions = getQuestion(conv.data.Userdata.grade);
     conv.data.score = 0;
     conv.data.question_num = 0;
-    Questions = []
 });
 
 //close intent
 app.intent('Close-intent', (conv, { param }) => {
-    conv.close("Bye Come again Soon!!!");
+    const close_ssml = '<speak>' + '<parsody rate="medium"> ' + `<p>
+    <s>Bye ${conv.data.Userdata.nickname.name}, Come Again Soon </s> 
+    </p>` + '</parsody>' + '</speak>';
+    conv.ask(close_ssml);
 });
 
 //Help
 app.intent('Help', (conv, { param }) => {
-    const help_ssml = '<speak>' + '<p>' + '<parsody rate="slow"> <s> Here are some Tips :</s> <s> Every Question Has Four options , you can choose any one of it. </s> <break strength="weak" /> <s> If you didn"t hear Question properly you can always ask to repeat.</s> <break strength="weak" /> <s> Your rank will be calculated at end of the Quiz. try to Stay at the Top !!!</s><break strength="weak" /> <s> If you need help Just call Out "help"</s></parsody>' + '</p>' + '</speak>';
+    const help_ssml = '<speak>' + '<parsody rate="slow"> ' + `<p>
+    <s> Here are some Tips :</s> 
+    <s> Every Question Has Four options A,B,C,D you can choose any one of it. </s>
+    <s> If you didn"t hear Question properly you can always ask to repeat.</s> 
+    <s> Your rank will be calculated at end of the Quiz. try to Stay at the Top !!!</s>
+    <s> If you need help Just call Out "help"</s>
+    </p>` + '</parsody>' + '</speak>';
     conv.ask(help_ssml);
 });
 
@@ -323,10 +330,20 @@ app.intent('Question_Answer_no', (conv, { param }) => {
     conv.ask(repeat_ssml);
 });
 
+app.intent('repeat', (conv) => {
+    let repeatPrefix = promptFetch.getRepeatPrefix(); // randomly chooses from REPEAT_PREFIX
+    // Move SSML start tags over
+    if (conv.data.lastPrompt.startsWith(promptFetch.getSSMLPrefix())) {
+        conv.data.lastPrompt = conv.data.lastPrompt.slice(promptFetch.getSSMLPrefix, length);
+        repeatPrefix = promptFetch.getSSMLPrefix() + repeatPrefix;
+    }
+    conv.ask(repeatPrefix + conv.data.lastPrompt,
+        conv.data.lastNoInputPrompts);
+});
+
 function getRandArray(max) {
-    console.log("inside random");
     let rand_array = [];
-    for (let i = 0; i < max || rand_array.length != 5; i++) {
+    for (let i = 0; rand_array.length != 5; i++) {
         let random = Math.floor(Math.random() * Math.floor(max)).toString();
         if (!(rand_array.includes(random))) {
             rand_array.push(random);
@@ -336,18 +353,21 @@ function getRandArray(max) {
 }
 
 function getQuestion(grade) {
-    console.log("inside Question");
+    let questions = [];
     let randArray = getRandArray(total_question_no);
-    return db.collection("Questions:" + grade.toString().trim()).where('num', 'in', randArray).get()
+    console.log(randArray);
+    const gradeQuestionRef = db.collection("Questions:" + grade.toString().trim());
+    let questionREF = gradeQuestionRef.where('num', 'in', randArray).get()
         .then(function(querySnapshot) {
             console.log("doc came");
             querySnapshot.forEach(function(doc) {
-                Questions.push(doc.data())
+                questions.push(doc.data())
             });
         })
         .catch(function(error) {
             console.log("Error getting documents: ", error);
         });
+    return questions
 }
 
 function secBetweenDate(date) {
